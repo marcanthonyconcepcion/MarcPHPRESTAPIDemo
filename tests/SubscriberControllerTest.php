@@ -1,0 +1,118 @@
+<?php ob_start();
+/*
+ * Copyright (c) 2021.
+ * Marc Concepcion
+ * marcanthonyconcepcion@gmail.com
+ */
+
+require_once 'ModelViewController.php';
+require_once 'SubscriberModeViewController.php';
+require_once 'PDODatabaseRecords.php';
+
+
+use PHPUnit\Framework\TestCase;
+
+class SubscriberControllerTest extends TestCase
+{
+    private Controller $dut;
+    private array $expected_records;
+
+    protected function setUp(): void
+    {
+        $this->expected_records = [
+            (object)['index'=>1,    'email_address'=>'marcanthonyconcepcion@gmail.com',
+                'last_name'=>'Concepcion',  'first_name'=>'Marc Anthony',   'activation_flag'=> 0 ],
+            (object)['index'=>2,    'email_address'=>'marcanthonyconcepcion@protonmail.com',
+                'last_name'=>'Concepcion',  'first_name'=>'Marc',           'activation_flag'=> 0 ],
+            (object)['index'=>3,    'email_address'=>'kevin.andrews@yahoomail.com',
+                'last_name'=>'Andrews',     'first_name'=>'Kevin',          'activation_flag'=> 0 ],
+        ];
+        $this->dut = new Controller(new SubscriberModel(PDODatabaseRecords::get()));
+        $this->dut->post('{"email_address": "marcanthonyconcepcion@gmail.com", "last_name":"Concepcion", "first_name":"Marc Anthony"}');
+        $this->dut->post('{"email_address": "marcanthonyconcepcion@protonmail.com", "last_name":"Concepcion", "first_name":"Marc"}');
+        $this->dut->post('{"email_address": "kevin.andrews@yahoomail.com", "last_name":"Andrews", "first_name":"Kevin"}');
+    }
+
+    protected function tearDown() : void
+    {
+        unset($this->expected_records);
+        PDODatabaseRecords::get()->edit('truncate table `subscribers`');
+    }
+
+    function testGet()
+    {
+        $this->assertEquals([   'status_header'=>'HTTP/1.1 200 OK', 'status_code'=>200,
+                                'body'=>json_encode($this->expected_records)],
+                            $this->dut->processHTTP((object)[   'http_command'=>'GET',
+                                                                'parameters'=>json_encode(new StdClass())]));
+
+        for($i=0;$i<count($this->expected_records);$i++)
+        {
+            $this->assertEquals([   'status_header'=>'HTTP/1.1 200 OK', 'status_code'=>200,
+                                    'body'=>json_encode($this->expected_records[$i])],
+                $this->dut->processHTTP((object)[   'http_command'=>'GET',
+                                                    'parameters'=>json_encode(new StdClass())],$i+1));
+        }
+    }
+
+    function testPost()
+    {
+        $model = new StdClass();
+        $model->email_address = 'riseofskywalker@starwars.com';
+        $model->last_name = 'Palpatine';
+        $model->first_name = 'Rey';
+        $model->activation_flag = 0;
+
+        $id = 4;
+        $this->expected_records[$id-1] = new StdClass();
+        $this->expected_records[$id-1]->index = $id;
+        $this->expected_records[$id-1]->email_address = $model->email_address;
+        $this->expected_records[$id-1]->last_name = $model->last_name;
+        $this->expected_records[$id-1]->first_name = $model->first_name;
+        $this->expected_records[$id-1]->activation_flag = $model->activation_flag;
+        $this->assertEquals(['status_header'=>'HTTP/1.1 201 Created', 'status_code'=>201,
+            'body'=>'{"success": "Record created.", "subscriber":'.json_encode((array)$model).'}'],
+            $this->dut->processHTTP((object)['http_command'=>'POST', 'json_parameters'=>json_encode($model)]));
+        $this->testGet();
+    }
+
+    function testUpdate()
+    {
+        $id = 1;
+        $model = new StdClass();
+        $model->activation_flag = 1;
+        $model->email_address = 'marcanthonyconcepcion@yahoo.com';
+        $this->expected_records[$id-1]->activation_flag = $model->activation_flag;
+        $this->expected_records[$id-1]->email_address = $model->email_address;
+        $this->assertEquals(['status_header'=>'HTTP/1.1 200 OK', 'status_code'=>200,
+                            'body'=>'{"success": "Record of subscriber # '.$id.' updated.", '.
+                                     '"updates":'.json_encode((array)$model).'}'],
+                            $this->dut->processHTTP(
+                                (object)['http_command'=>'PUT', 'json_parameters'=>json_encode($model)], $id));
+        $this->assertEquals([   'status_header'=>'HTTP/1.1 200 OK', 'status_code'=>200,
+                                'body'=>json_encode($this->expected_records[$id-1])],
+                                $this->dut->processHTTP((object)['http_command'=>'GET'], $id));
+        $this->testGet();
+    }
+
+    function testDelete()
+    {
+        $id=3;
+        unset($this->expected_records[$id-1]);
+        $this->expected_records = array_values($this->expected_records);
+        $this->assertEquals(['status_header'=>'HTTP/1.1 200 OK', 'status_code'=>200,
+            'body'=>'{"success": "Record of subscriber # '.$id.' deleted."}'],
+            $this->dut->processHTTP((object)['http_command'=>'DELETE'], $id));
+        $this->testGet();
+    }
+
+    function testNonExistingSubscriber()
+    {
+        $error_response = [ 'status_header'=>'HTTP_404_NOT_FOUND', 'status_code'=>404,
+                            'body'=>'{"error": "Subscriber does not exist"}'];
+        $this->assertEquals($error_response, $this->dut->processHTTP((object)['http_command'=>'GET'], 100));
+        $this->assertEquals($error_response, $this->dut->processHTTP((object)[
+            'http_command'=>'PUT', 'json_parameters'=>json_encode(new StdClass())], 200));
+        $this->assertEquals($error_response, $this->dut->processHTTP((object)['http_command'=>'DELETE'], 300));
+    }
+}
