@@ -5,7 +5,14 @@
  * marcanthonyconcepcion@gmail.com
  */
 
-use JetBrains\PhpStorm\ArrayShape;
+$configuration = yaml_parse_file(__DIR__.'\resources\MarcPHPRESTAPIDemo.yaml');
+define('ModelViewController_RESOURCE', $configuration['mvc']['resource']);
+define('HTTP_OK',['code'=>200, 'message'=>'HTTP/1.1 200 OK']);
+define('HTTP_CREATED',['code'=>201,'message'=>'HTTP/1.1 201 Created']);
+define('HTTP_NOT_FOUND',['code'=>404,'message'=>'HTTP/1.1 404 Not Found']);
+define('HTTP_BAD_REQUEST',['code'=>400,'message'=>'HTTP/1.1 400 Bad Request']);
+define('HTTP_NOT_ALLOWED',['code'=>405,'message'=>'HTTP/1.1 405 Method Not Allowed']);
+define('HTTP_INTERNAL_SERVER_ERROR',['code'=>500,'message'=>'HTTP/1.1 500 Internal Server Error']);
 
 
 interface Model
@@ -21,7 +28,7 @@ interface Model
 class View
 {
     /**
-     * @throws HTTPBadRequest
+     * @throws HTTPBadRequestError
      */
     static function receiveRequest(): object
     {
@@ -31,128 +38,115 @@ class View
         header("Access-Control-Max-Age: 3600");
         header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
         $uri = explode('/', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
-        if ($uri[1] !== 'subscribers') {
-            throw new HTTPBadRequest();
+        if (key_exists(1, $uri) && strlen($uri[1]))
+        {
+            if ($uri[1] !== ModelViewController_RESOURCE)
+            {
+                throw new HTTPBadRequestError('Resource '.$uri[1].' does not exist. Please provide a valid REST API resource.');
+            }
         }
-        $id = is_null($uri[2]) ? null : intval($uri[2]);
+        else
+        {
+            throw new HTTPBadRequestError('No resource specified on the URL. Please provide a valid REST API resource.');
+        }
+        $id = null;
+        if (key_exists(2, $uri) && strlen($uri[2]))
+        {
+            $id = intval($uri[2]);
+        }
         $request = new StdClass();
         $request->http_command = $_SERVER["REQUEST_METHOD"];
-        parse_str($_SERVER['QUERY_STRING'], $parameters);
-        $request->json_parameters = json_encode($parameters);
+        if (key_exists('QUERY_STRING', $_SERVER))
+        {
+            parse_str($_SERVER['QUERY_STRING'], $parameters);
+            $request->json_parameters = json_encode($parameters);
+        }
         return (object)['id'=>$id, 'request'=>$request];
     }
 
     static function sendResponse(StdClass $response)
     {
-        header($response->status_header, true, $response->status_code);
+        header($response->status->message, true, $response->status->code);
         if(is_null($response->body)===false)
         {
             echo $response->body;
         }
     }
+
+    static function sendErrorResponse(StdClass $http_error_status, string $message)
+    {
+        header($http_error_status->message, true, $http_error_status->code);
+        echo json_encode(json_decode('{"error": "'.$message.'"}'));
+    }
 }
 
-class Controller
+abstract class Controller
 {
-    private Model $model;
-    public string $request;
+    protected array $models;
 
-    function __construct(Model $model)
+    /**
+     * @param int|null $id
+     * @throws HTTPNotFoundError
+     */
+    abstract function get(?int $id = null);
+    abstract function post(string $json_parameters);
+
+    /**
+     * @param int $id
+     * @param string $json_parameters
+     * @throws HTTPNotFoundError
+     */
+    abstract function put(int $id, string $json_parameters);
+
+    /**
+     * @param int $id
+     * @throws HTTPNotFoundError
+     */
+    abstract function delete(int $id);
+
+    function register(Model $model, string $modelName)
     {
-        $this->model = $model;
+        $this->models[$modelName] = $model;
     }
 
-    function processHTTP(StdClass $request, ?int $id = null): array
+    /**
+     * @param StdClass $request
+     * @param int|null $id
+     * @return object
+     * @throws HTTPMethodNotAllowedError
+     * @throws HTTPNotFoundError
+     */
+    function processHTTP(StdClass $request, ?int $id = null): object
     {
+        $this->evaluateHTTPCommand($request->http_command, $id);
         return match ($request->http_command) {
             'GET' => $this->get($id),
             'POST' => $this->post($request->json_parameters),
             'PUT' => $this->put($id, $request->json_parameters),
             'DELETE' => $this->delete($id),
-            default => ['status_header'=>'HTTP/1.1 405 Method Not Allowed', 'status_code'=>405,
+            default => (object)['status'=>(object)HTTP_NOT_ALLOWED,
                 'body'=>json_encode(json_decode('{"error": "Cannot use '.$request->http_command.' command." }'))]
         };
     }
 
-    function get(?int $id = null): array
+    /**
+     * @param string $http_command
+     * @param int|null $id
+     * @throws HTTPMethodNotAllowedError
+     */
+    private function evaluateHTTPCommand(string $http_command, ?int $id)
     {
-        try {
-            $model = [];
-            if ($id === null) {
-                $records = $this->model->list();
-                foreach($records as $record) {
-                    array_push($model, $record);
-                }
-            }
-            else {
-                $model = $this->model->retrieve($id);
-                if (false === $this->model->checkExistence($id))
-                {
-                    throw new NonExistingSubscriberError();
-                }
-            }
-            return ['status_header'=>'HTTP/1.1 200 OK', 'status_code'=>200, 'body'=>json_encode($model)];
-        }
-        catch (NonExistingSubscriberError)
+        if (    false === in_array($http_command, ['GET', 'POST', 'PUT', 'DELETE']) ||
+                $http_command === 'POST'   &&  !is_null($id)  ||
+                $http_command === 'PUT'    &&   is_null($id)  ||
+                $http_command === 'DELETE' &&   is_null($id)    )
         {
-            return ['status_header'=>'HTTP_404_NOT_FOUND', 'status_code'=>404,
-                'body'=>json_decode(json_encode('{"error": "Subscriber does not exist"}'))];
-        }
-
-    }
-
-    #[ArrayShape(['status_header' => "string", 'status_code' => "int", 'body' => "mixed"])]
-    function post(string $json_parameters): array
-    {
-        $model = json_decode($json_parameters);
-        $this->model->create($model);
-        return ['status_header'=>'HTTP/1.1 201 Created', 'status_code'=>201,
-            'body'=> json_decode(json_encode('{"success": "Record created.", "subscriber":'.
-                json_encode((array)$model).'}'))];
-    }
-
-    #[ArrayShape(['status_header' => "string", 'status_code' => "int", 'body' => "mixed"])]
-    function put(int $id, string $json_parameters): array
-    {
-        try
-        {
-            if (false === $this->model->checkExistence($id))
-            {
-                throw new NonExistingSubscriberError();
-            }
-            $model = json_decode($json_parameters);
-            $this->model->update($id, $model);
-            return ['status_header'=>'HTTP/1.1 200 OK', 'status_code'=>200,
-                'body'=> json_decode(json_encode('{"success": "Record of subscriber # '.$id.' updated.", "updates":'.
-                    json_encode((array)$model).'}'))];
-        }
-        catch (NonExistingSubscriberError)
-        {
-            return ['status_header'=>'HTTP_404_NOT_FOUND', 'status_code'=>404,
-                'body'=>json_decode(json_encode('{"error": "Subscriber does not exist"}'))];
-        }
-    }
-
-    #[ArrayShape(['status_header' => "string", 'status_code' => "int", 'body' => "mixed"])]
-    function delete(int $id): array
-    {
-        try
-        {
-            if (false === $this->model->checkExistence($id))
-            {
-                throw new NonExistingSubscriberError();
-            }
-            $this->model->delete($id);
-            return ['status_header'=>'HTTP/1.1 200 OK', 'status_code'=>200,
-                'body'=> json_decode(json_encode('{"success": "Record of subscriber # '.$id.' deleted."}'))];
-        }
-        catch (NonExistingSubscriberError)
-        {
-            return ['status_header'=>'HTTP_404_NOT_FOUND', 'status_code'=>404,
-                'body'=>json_decode(json_encode('{"error": "Subscriber does not exist"}'))];
+            throw new HTTPMethodNotAllowedError('HTTP command '.$http_command.' '.(is_null($id)?'without': 'with')
+                .' specified ID is not allowed. Please provide acceptable HTTP command.');
         }
     }
 }
 
-class NonExistingSubscriberError extends Exception { }
-class HTTPBadRequest extends Exception { }
+class HTTPNotFoundError extends Exception { }
+class HTTPBadRequestError extends Exception { }
+class HTTPMethodNotAllowedError extends Exception { }

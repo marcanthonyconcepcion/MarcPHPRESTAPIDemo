@@ -3,3 +3,7 @@ database:
   dbname: subscribers_database
   user: user
   password: password
+mvc:
+  resource: subscribers
+log:
+  filename: error.log

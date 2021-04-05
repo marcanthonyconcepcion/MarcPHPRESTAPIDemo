@@ -15,4 +15,3 @@ create table if not exists `subscribers` (
     `first_name`		varchar(100),
     `activation_flag`	tinyint			default 0 not null
 );
-select * from `subscribers`;

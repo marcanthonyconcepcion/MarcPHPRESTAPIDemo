@@ -5,6 +5,9 @@
  * marcanthonyconcepcion@gmail.com
  */
 
+$configuration = yaml_parse_file(__DIR__.'\resources\MarcPHPRESTAPIDemo.yaml');
+define('Main_ERROR_LOG', $configuration['log']['filename']);
+
 use JetBrains\PhpStorm\Pure;
 
 require_once 'ModelViewController.php';
@@ -29,14 +32,33 @@ class Main
         {
             $view_request = View::receiveRequest();
             $view_response = $this->controller->processHTTP($view_request->request, $view_request->id);
-            View::sendResponse((object)$view_response);
+            View::sendResponse($view_response);
         }
-        catch (HTTPBadRequest)
+        catch (HTTPBadRequestError $error)
         {
-            header('HTTP/1.1 400 Bad Request', 400);
+            View::sendErrorResponse((object)HTTP_BAD_REQUEST, $error->getMessage());
+        }
+        catch (HTTPMethodNotAllowedError $error)
+        {
+            View::sendErrorResponse((object)HTTP_NOT_ALLOWED, $error->getMessage());
+        }
+        catch (HTTPNotFoundError $error)
+        {
+            View::sendErrorResponse((object)HTTP_NOT_FOUND, $error->getMessage());
         }
     }
 }
 
-$main = new Main(new Controller(new SubscriberModel(PDODatabaseRecords::get())));
-$main->execute();
+if (!debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS))
+{
+    try
+    {
+        $main = new Main(new SubscriberController(new SubscriberModel(PDODatabaseRecords::get())));
+        $main->execute();
+    }
+    catch (Exception $error)
+    {
+        View::sendErrorResponse((object)HTTP_INTERNAL_SERVER_ERROR, "Error in server. Please bear with us.");
+        error_log($error->getMessage() . PHP_EOL, 3, Main_ERROR_LOG);
+    }
+}
