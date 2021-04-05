@@ -5,6 +5,8 @@
  * marcanthonyconcepcion@gmail.com
  */
 
+use JetBrains\PhpStorm\ArrayShape;
+
 require_once 'ModelViewController.php';
 require_once 'DatabaseRecords.php';
 require_once 'PDODatabaseRecords.php';
@@ -58,5 +60,84 @@ class SubscriberModel implements Model
     {
         return 0 < current($this->records->fetch(
             'select count(*) from `subscribers` where `index`= :index',[':index'=>$id])->current());
+    }
+}
+
+
+class SubscriberController extends Controller
+{
+    function __construct(SubscriberModel $model)
+    {
+        $this->register($model, 'subscribers');
+    }
+
+    /**
+     * @param int|null $id
+     * @return object
+     * @throws HTTPNotFoundError
+     */
+    function get(?int $id = null): object
+    {
+        $model = [];
+        if (is_null($id)) {
+            $records = $this->models['subscribers']->list();
+            foreach($records as $record) {
+                array_push($model, $record);
+            }
+        }
+        else {
+            $model = $this->models['subscribers']->retrieve($id);
+            if (false === $this->models['subscribers']->checkExistence($id))
+            {
+                throw new HTTPNotFoundError('Subscriber does not exist.');
+            }
+        }
+        return (object)['status'=>(object)HTTP_OK, 'body'=>json_encode($model)];
+    }
+
+    #[ArrayShape(['status_header' => "string", 'status_code' => "int", 'body' => "mixed"])]
+    function post(string $json_parameters): object
+    {
+        $model = json_decode($json_parameters);
+        $this->models['subscribers']->create($model);
+        return (object)['status'=>(object)HTTP_CREATED, 'body'=> json_decode(json_encode(
+                '{"success": "Record created.", "subscriber":'.json_encode((array)$model).'}'))];
+    }
+
+    /**
+     * @param int $id
+     * @param string $json_parameters
+     * @return object
+     * @throws HTTPNotFoundError
+     */
+    #[ArrayShape(['status_header' => "string", 'status_code' => "int", 'body' => "mixed"])]
+    function put(int $id, string $json_parameters): object
+    {
+        if (false === $this->models['subscribers']->checkExistence($id))
+        {
+            throw new HTTPNotFoundError('Subscriber does not exist.');
+        }
+        $model = json_decode($json_parameters);
+        $this->models['subscribers']->update($id, $model);
+        return (object)['status'=>(object)HTTP_OK, 'body'=> json_decode(json_encode(
+            '{"success": "Record of subscriber # '.$id.' updated.", "updates":'
+            .json_encode((array)$model).'}'))];
+    }
+
+    /**
+     * @param int $id
+     * @return object
+     * @throws HTTPNotFoundError
+     */
+    #[ArrayShape(['status_header' => "string", 'status_code' => "int", 'body' => "mixed"])]
+    function delete(int $id): object
+    {
+        if (false === $this->models['subscribers']->checkExistence($id))
+        {
+            throw new HTTPNotFoundError('Subscriber does not exist.');
+        }
+        $this->models['subscribers']->delete($id);
+        return (object)['status'=>(object)HTTP_OK, 'body'=> json_decode(json_encode(
+            '{"success": "Record of subscriber # '.$id.' deleted."}'))];
     }
 }
