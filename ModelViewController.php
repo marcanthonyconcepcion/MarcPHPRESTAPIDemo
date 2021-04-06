@@ -145,14 +145,14 @@ abstract class Controller
                 $request->http_command === 'DELETE' &&   is_null($id)    )
         {
             throw new HTTPMethodNotAllowedError('HTTP command '.$request->http_command.' '.(is_null($id)?'without': 'with')
-                .' specified ID is not allowed. Please provide acceptable HTTP command.');
+                .' specified ID is not allowed. Please provide an acceptable HTTP command.');
         }
 
         if (($request->http_command === 'POST' || $request->http_command === 'PUT')
             && false === key_exists('json_parameters', (array)$request))
         {
             throw new HTTPMethodNotAllowedError('HTTP command '.$request->http_command
-                .' without providing parameters is not allowed. Please provide acceptable HTTP command.');
+                .' without providing parameters is not allowed. Please provide an acceptable HTTP command.');
         }
     }
 }

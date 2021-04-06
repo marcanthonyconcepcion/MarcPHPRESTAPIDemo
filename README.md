@@ -238,7 +238,7 @@ Host: 127.0.0.1:8080
 X-Powered-By: PHP/8.0.1
 
 {
-    "error": "HTTP command TRACE without specified ID is not allowed. Please provide acceptable HTTP command."
+    "error": "HTTP command TRACE without specified ID is not allowed. Please provide an acceptable HTTP command."
 }
 ```
 
