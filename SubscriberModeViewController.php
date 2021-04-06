@@ -90,7 +90,7 @@ class SubscriberController extends Controller
             }
             if (0 === count($model))
             {
-                return (object)['status'=>(object)HTTP_NO_CONTENT];
+                return (object)['status'=>(object)HTTP_NO_CONTENT, 'body'=>null];
             }
         }
         else
