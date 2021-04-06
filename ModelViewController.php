@@ -9,9 +9,11 @@ $configuration = yaml_parse_file(__DIR__.'\resources\MarcPHPRESTAPIDemo.yaml');
 define('ModelViewController_RESOURCE', $configuration['mvc']['resource']);
 define('HTTP_OK',['code'=>200, 'message'=>'HTTP/1.1 200 OK']);
 define('HTTP_CREATED',['code'=>201,'message'=>'HTTP/1.1 201 Created']);
-define('HTTP_NOT_FOUND',['code'=>404,'message'=>'HTTP/1.1 404 Not Found']);
+define('HTTP_NO_CONTENT',['code'=>204,'message'=>'HTTP/1.1 204 No Content']);
 define('HTTP_BAD_REQUEST',['code'=>400,'message'=>'HTTP/1.1 400 Bad Request']);
+define('HTTP_NOT_FOUND',['code'=>404,'message'=>'HTTP/1.1 404 Not Found']);
 define('HTTP_NOT_ALLOWED',['code'=>405,'message'=>'HTTP/1.1 405 Method Not Allowed']);
+define('HTTP_CONFLICT_ERROR',['code'=>409,'message'=>'HTTP/1.1 409 Conflict Error']);
 define('HTTP_INTERNAL_SERVER_ERROR',['code'=>500,'message'=>'HTTP/1.1 500 Internal Server Error']);
 
 
@@ -115,10 +117,11 @@ abstract class Controller
      * @return object
      * @throws HTTPMethodNotAllowedError
      * @throws HTTPNotFoundError
+     * @throws HTTPConflictError
      */
     function processHTTP(StdClass $request, ?int $id = null): object
     {
-        $this->evaluateHTTPCommand($request->http_command, $id);
+        $this->evaluateHTTPCommand($request, $id);
         return match ($request->http_command) {
             'GET' => $this->get($id),
             'POST' => $this->post($request->json_parameters),
@@ -130,19 +133,26 @@ abstract class Controller
     }
 
     /**
-     * @param string $http_command
+     * @param StdClass $request
      * @param int|null $id
      * @throws HTTPMethodNotAllowedError
      */
-    private function evaluateHTTPCommand(string $http_command, ?int $id)
+    private function evaluateHTTPCommand(StdClass $request, ?int $id)
     {
-        if (    false === in_array($http_command, ['GET', 'POST', 'PUT', 'DELETE']) ||
-                $http_command === 'POST'   &&  !is_null($id)  ||
-                $http_command === 'PUT'    &&   is_null($id)  ||
-                $http_command === 'DELETE' &&   is_null($id)    )
+        if (    false === in_array($request->http_command, ['GET', 'POST', 'PUT', 'DELETE']) ||
+                $request->http_command === 'POST'   &&  !is_null($id)  ||
+                $request->http_command === 'PUT'    &&   is_null($id)  ||
+                $request->http_command === 'DELETE' &&   is_null($id)    )
         {
-            throw new HTTPMethodNotAllowedError('HTTP command '.$http_command.' '.(is_null($id)?'without': 'with')
-                .' specified ID is not allowed. Please provide acceptable HTTP command.');
+            throw new HTTPMethodNotAllowedError('HTTP command '.$request->http_command.' '.(is_null($id)?'without': 'with')
+                .' specified ID is not allowed. Please provide an acceptable HTTP command.');
+        }
+
+        if (($request->http_command === 'POST' || $request->http_command === 'PUT')
+            && false === key_exists('json_parameters', (array)$request))
+        {
+            throw new HTTPMethodNotAllowedError('HTTP command '.$request->http_command
+                .' without providing parameters is not allowed. Please provide an acceptable HTTP command.');
         }
     }
 }
@@ -150,3 +160,4 @@ abstract class Controller
 class HTTPNotFoundError extends Exception { }
 class HTTPBadRequestError extends Exception { }
 class HTTPMethodNotAllowedError extends Exception { }
+class HTTPConflictError extends Exception { }

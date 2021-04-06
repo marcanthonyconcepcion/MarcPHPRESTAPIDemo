@@ -113,6 +113,20 @@ X-Powered-By: PHP/8.0.1
 ]
 ```
 
+If there are no records in the database, the API shall return an *HTTP 204: No Content* status code.
+```
+C:\>http get http://127.0.0.1:8080/subscribers
+HTTP/1.1 204 No Content
+Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With
+Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE
+Access-Control-Allow-Origin: *
+Access-Control-Max-Age: 3600
+Connection: close
+Content-Type: application/json; charset=UTF-8
+Host: 127.0.0.1:8080
+X-Powered-By: PHP/8.0.1
+```
+
 ### Requirement 3: Edit an existing subscriber user record
 
 #### Demonstrates PUT with ID and UPDATE a specified single record
@@ -228,7 +242,25 @@ X-Powered-By: PHP/8.0.1
 }
 ```
 
-### Error Test Case 4-1: POST with specified ID.
+### Error Test Case 4: POST an already existing record
+```
+C:\>http post http://127.0.0.1:8080/subscribers/?email_address=riseofskywalker@starwars.com"&"last_name=Palpatine"&"first_name=Rey
+HTTP/1.1 409 Conflict Error
+Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With
+Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE
+Access-Control-Allow-Origin: *
+Access-Control-Max-Age: 3600
+Connection: close
+Content-Type: application/json; charset=UTF-8
+Host: 127.0.0.1:8080
+X-Powered-By: PHP/8.0.1
+
+{
+    "error": "Posting/creating an already existing record. Please put/update an existing record or post/create a totally new record."
+}
+```
+
+### Error Test Case 5-1: POST with specified ID.
 ```
 C:\>http post http://127.0.0.1:8080/subscribers/1?email_address=riseofskywalker@starwars.com"&"last_name=Palpatine"&"first_name=Rey
 HTTP/1.1 405 Method Not Allowed
@@ -242,11 +274,29 @@ Host: 127.0.0.1:8080
 X-Powered-By: PHP/8.0.1
 
 {
-    "error": "HTTP command POST with specified ID is not allowed. Please provide acceptable HTTP command."
+    "error": "HTTP command POST with specified ID is not allowed. Please provide an acceptable HTTP command."
 }
 ```
 
-### Error Test Case 4-2: PUT without specified ID.
+### Error Test Case 5-2: POST without required parameters
+```
+C:\>http post http://127.0.0.1:8080/subscribers/
+HTTP/1.1 405 Method Not Allowed
+Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With
+Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE
+Access-Control-Allow-Origin: *
+Access-Control-Max-Age: 3600
+Connection: close
+Content-Type: application/json; charset=UTF-8
+Host: 127.0.0.1:8080
+X-Powered-By: PHP/8.0.1
+
+{
+    "error": "HTTP command POST without providing parameters is not allowed. Please provide an acceptable HTTP command."
+}
+```
+
+### Error Test Case 5-3: PUT without specified ID.
 ```
 C:\>http put http://127.0.0.1:8080/subscribers/?last_name=Skywalker
 HTTP/1.1 405 Method Not Allowed
@@ -260,11 +310,29 @@ Host: 127.0.0.1:8080
 X-Powered-By: PHP/8.0.1
 
 {
-    "error": "HTTP command PUT without specified ID is not allowed. Please provide acceptable HTTP command."
+    "error": "HTTP command PUT without specified ID is not allowed. Please provide an acceptable HTTP command."
 }
 ```
 
-### Error Test Case 4-3: DELETE without specified ID.
+### Error Test Case 5-4: PUT without required parameters
+```
+C:\>http put http://127.0.0.1:8080/subscribers/1
+HTTP/1.1 405 Method Not Allowed
+Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With
+Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE
+Access-Control-Allow-Origin: *
+Access-Control-Max-Age: 3600
+Connection: close
+Content-Type: application/json; charset=UTF-8
+Host: 127.0.0.1:8080
+X-Powered-By: PHP/8.0.1
+
+{
+    "error": "HTTP command PUT without providing parameters is not allowed. Please provide an acceptable HTTP command."
+}
+```
+
+### Error Test Case 5-5: DELETE without specified ID
 ```
 C:\>http delete http://127.0.0.1:8080/subscribers/
 HTTP/1.1 405 Method Not Allowed
@@ -278,7 +346,7 @@ Host: 127.0.0.1:8080
 X-Powered-By: PHP/8.0.1
 
 {
-    "error": "HTTP command DELETE without specified ID is not allowed. Please provide acceptable HTTP command."
+    "error": "HTTP command DELETE without specified ID is not allowed. Please provide an acceptable HTTP command."
 }
 ```
 
