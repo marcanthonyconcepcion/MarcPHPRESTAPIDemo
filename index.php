@@ -46,6 +46,10 @@ class Main
         {
             View::sendErrorResponse((object)HTTP_NOT_FOUND, $error->getMessage());
         }
+        catch (HTTPConflictError $error)
+        {
+            View::sendErrorResponse((object)HTTP_CONFLICT_ERROR, $error->getMessage());
+        }
     }
 }
 

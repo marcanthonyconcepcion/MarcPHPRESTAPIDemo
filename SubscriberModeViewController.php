@@ -5,6 +5,8 @@
  * marcanthonyconcepcion@gmail.com
  */
 
+define('SQLDuplicateKeyErrorCode', 23000);
+
 use JetBrains\PhpStorm\ArrayShape;
 
 require_once 'ModelViewController.php';
@@ -79,13 +81,20 @@ class SubscriberController extends Controller
     function get(?int $id = null): object
     {
         $model = [];
-        if (is_null($id)) {
+        if (is_null($id))
+        {
             $records = $this->models['subscribers']->list();
-            foreach($records as $record) {
+            foreach($records as $record)
+            {
                 array_push($model, $record);
             }
+            if (0 === count($model))
+            {
+                return (object)['status'=>(object)HTTP_NO_CONTENT];
+            }
         }
-        else {
+        else
+        {
             $model = $this->models['subscribers']->retrieve($id);
             if (false === $this->models['subscribers']->checkExistence($id))
             {
@@ -95,13 +104,33 @@ class SubscriberController extends Controller
         return (object)['status'=>(object)HTTP_OK, 'body'=>json_encode($model)];
     }
 
+    /**
+     * @param string $json_parameters
+     * @return object
+     * @throws HTTPConflictError
+     */
     #[ArrayShape(['status_header' => "string", 'status_code' => "int", 'body' => "mixed"])]
     function post(string $json_parameters): object
     {
-        $model = json_decode($json_parameters);
-        $this->models['subscribers']->create($model);
-        return (object)['status'=>(object)HTTP_CREATED, 'body'=> json_decode(json_encode(
-                '{"success": "Record created.", "subscriber":'.json_encode((array)$model).'}'))];
+        try
+        {
+            $model = json_decode($json_parameters);
+            $this->models['subscribers']->create($model);
+            return (object)['status' => (object)HTTP_CREATED, 'body' => json_decode(json_encode(
+                '{"success": "Record created.", "subscriber":' . json_encode((array)$model) . '}'))];
+        }
+        catch (Exception $error)
+        {
+            if(SQLDuplicateKeyErrorCode === $error->getCode())
+            {
+                throw new HTTPConflictError('Posting/creating an already existing record. '
+                    .'Please put/update an existing record or post/create a totally new record.');
+            }
+            else
+            {
+                throw $error;
+            }
+        }
     }
 
     /**
