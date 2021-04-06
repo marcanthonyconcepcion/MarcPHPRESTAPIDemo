@@ -17,7 +17,7 @@ require_once 'DatabaseRecords.php';
 
 class PDODatabaseRecords implements DatabaseRecords
 {
-    private ?PDO $database;
+    private PDO $database;
 
     function __construct()
     {
@@ -28,9 +28,9 @@ class PDODatabaseRecords implements DatabaseRecords
                                                                      PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                                                                      PDO::ATTR_EMULATE_PREPARES => false ]);
         }
-        catch (PDOException $exception)
+        catch (PDOException $error)
         {
-            throw new ConnectDatabaseError($exception->getMessage());
+            throw new ConnectDatabaseError($error->getMessage(), $error->getCode());
         }
     }
 
@@ -43,9 +43,9 @@ class PDODatabaseRecords implements DatabaseRecords
             while($row = $statement->fetch())
                 yield $row;
         }
-        catch (PDOException $exception)
+        catch (PDOException $error)
         {
-            throw new RunDatabaseQueryError($exception->getMessage());
+            throw new RunDatabaseQueryError($error->getMessage(), $error->getCode());
         }
         finally
         {
@@ -59,9 +59,9 @@ class PDODatabaseRecords implements DatabaseRecords
         {
             $this->database->prepare($query)->execute($parameters);
         }
-        catch (PDOException $exception)
+        catch (PDOException $error)
         {
-            throw new RunDatabaseQueryError($exception->getMessage());
+            throw new RunDatabaseQueryError($error->getMessage(), $error->getCode());
         }
     }
 
