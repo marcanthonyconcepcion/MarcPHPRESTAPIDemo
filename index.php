@@ -18,7 +18,6 @@ require_once 'PDODatabaseRecords.php';
 class Main
 {
     private Controller $controller;
-    private StdClass $request;
 
     #[Pure]
     function __construct(Controller $controller)
@@ -34,21 +33,9 @@ class Main
             $view_response = $this->controller->processHTTP($view_request->request, $view_request->id);
             View::sendResponse($view_response);
         }
-        catch (HTTPBadRequestError $error)
+        catch (HTTPError $error)
         {
-            View::sendErrorResponse((object)HTTP_BAD_REQUEST, $error->getMessage());
-        }
-        catch (HTTPMethodNotAllowedError $error)
-        {
-            View::sendErrorResponse((object)HTTP_NOT_ALLOWED, $error->getMessage());
-        }
-        catch (HTTPNotFoundError $error)
-        {
-            View::sendErrorResponse((object)HTTP_NOT_FOUND, $error->getMessage());
-        }
-        catch (HTTPConflictError $error)
-        {
-            View::sendErrorResponse((object)HTTP_CONFLICT_ERROR, $error->getMessage());
+            View::sendErrorResponse($error->getResponse(), $error->getMessage());
         }
     }
 }
@@ -60,7 +47,7 @@ if (!debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS))
         $main = new Main(new SubscriberController(new SubscriberModel(PDODatabaseRecords::get())));
         $main->execute();
     }
-    catch (Exception $error)
+    catch (Exception|Error $error)
     {
         View::sendErrorResponse((object)HTTP_INTERNAL_SERVER_ERROR, "Error in server. Please bear with us.");
         error_log($error->getMessage() . PHP_EOL, 3, Main_ERROR_LOG);

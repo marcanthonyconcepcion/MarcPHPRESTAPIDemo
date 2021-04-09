@@ -5,7 +5,7 @@
  * marcanthonyconcepcion@gmail.com
  */
 
-define('SQLDuplicateKeyErrorCode', 23000);
+const SQLDuplicateKeyErrorCode = 23000;
 
 use JetBrains\PhpStorm\ArrayShape;
 

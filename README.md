@@ -173,7 +173,7 @@ X-Powered-By: PHP/8.0.1
 
 ### Error Test Case 1: Get a record of a subscriber who does not exist.
 ```
-C:\>http get http://127.0.0.1:8080/subscribers/4
+C:\>http get http://127.0.0.1:8080/subscribers/400
 HTTP/1.1 404 Not Found
 Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With
 Access-Control-Allow-Methods: OPTIONS,GET,POST,PUT,DELETE

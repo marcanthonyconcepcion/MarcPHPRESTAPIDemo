@@ -10,7 +10,7 @@ define('Database_HOST', $configuration['database']['host']);
 define('Database_DBNAME', $configuration['database']['dbname']);
 define('Database_USER', $configuration['database']['user']);
 define('Database_PASSWORD', $configuration['database']['password']);
-define('Database_CHARSET', 'utf8');
+const Database_CHARSET = 'utf8';
 
 require_once 'DatabaseRecords.php';
 

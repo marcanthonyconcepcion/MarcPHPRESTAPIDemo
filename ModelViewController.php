@@ -7,14 +7,14 @@
 
 $configuration = yaml_parse_file(__DIR__.'\resources\MarcPHPRESTAPIDemo.yaml');
 define('ModelViewController_RESOURCE', $configuration['mvc']['resource']);
-define('HTTP_OK',['code'=>200, 'message'=>'HTTP/1.1 200 OK']);
-define('HTTP_CREATED',['code'=>201,'message'=>'HTTP/1.1 201 Created']);
-define('HTTP_NO_CONTENT',['code'=>204,'message'=>'HTTP/1.1 204 No Content']);
-define('HTTP_BAD_REQUEST',['code'=>400,'message'=>'HTTP/1.1 400 Bad Request']);
-define('HTTP_NOT_FOUND',['code'=>404,'message'=>'HTTP/1.1 404 Not Found']);
-define('HTTP_NOT_ALLOWED',['code'=>405,'message'=>'HTTP/1.1 405 Method Not Allowed']);
-define('HTTP_CONFLICT_ERROR',['code'=>409,'message'=>'HTTP/1.1 409 Conflict Error']);
-define('HTTP_INTERNAL_SERVER_ERROR',['code'=>500,'message'=>'HTTP/1.1 500 Internal Server Error']);
+const HTTP_OK = ['code' => 200, 'message' => 'HTTP/1.1 200 OK'];
+const HTTP_CREATED = ['code' => 201, 'message' => 'HTTP/1.1 201 Created'];
+const HTTP_NO_CONTENT = ['code' => 204, 'message' => 'HTTP/1.1 204 No Content'];
+const HTTP_BAD_REQUEST = ['code' => 400, 'message' => 'HTTP/1.1 400 Bad Request'];
+const HTTP_NOT_FOUND = ['code' => 404, 'message' => 'HTTP/1.1 404 Not Found'];
+const HTTP_NOT_ALLOWED = ['code' => 405, 'message' => 'HTTP/1.1 405 Method Not Allowed'];
+const HTTP_CONFLICT_ERROR = ['code' => 409, 'message' => 'HTTP/1.1 409 Conflict Error'];
+const HTTP_INTERNAL_SERVER_ERROR = ['code' => 500, 'message' => 'HTTP/1.1 500 Internal Server Error'];
 
 
 interface Model
@@ -115,7 +115,7 @@ abstract class Controller
      * @param StdClass $request
      * @param int|null $id
      * @return object
-     * @throws HTTPMethodNotAllowedError
+     * @throws HTTPNotAllowedError
      * @throws HTTPNotFoundError
      * @throws HTTPConflictError
      */
@@ -135,7 +135,7 @@ abstract class Controller
     /**
      * @param StdClass $request
      * @param int|null $id
-     * @throws HTTPMethodNotAllowedError
+     * @throws HTTPNotAllowedError
      */
     private function evaluateHTTPCommand(StdClass $request, ?int $id)
     {
@@ -144,20 +144,48 @@ abstract class Controller
                 $request->http_command === 'PUT'    &&   is_null($id)  ||
                 $request->http_command === 'DELETE' &&   is_null($id)    )
         {
-            throw new HTTPMethodNotAllowedError('HTTP command '.$request->http_command.' '.(is_null($id)?'without': 'with')
+            throw new HTTPNotAllowedError('HTTP command '.$request->http_command.' '.(is_null($id)?'without': 'with')
                 .' specified ID is not allowed. Please provide an acceptable HTTP command.');
         }
 
         if (($request->http_command === 'POST' || $request->http_command === 'PUT')
             && false === key_exists('json_parameters', (array)$request))
         {
-            throw new HTTPMethodNotAllowedError('HTTP command '.$request->http_command
+            throw new HTTPNotAllowedError('HTTP command '.$request->http_command
                 .' without providing parameters is not allowed. Please provide an acceptable HTTP command.');
         }
     }
 }
 
-class HTTPNotFoundError extends Exception { }
-class HTTPBadRequestError extends Exception { }
-class HTTPMethodNotAllowedError extends Exception { }
-class HTTPConflictError extends Exception { }
+abstract class HTTPError extends Exception
+{
+    abstract function getResponse();
+}
+class HTTPNotFoundError extends HTTPError
+{
+    function getResponse() : object
+    {
+        return (object)HTTP_NOT_FOUND;
+    }
+}
+class HTTPBadRequestError extends HTTPError
+{
+    function getResponse() : object
+    {
+        return (object)HTTP_BAD_REQUEST;
+    }
+}
+class HTTPNotAllowedError extends HTTPError
+{
+    function getResponse() : object
+    {
+        return (object)HTTP_NOT_ALLOWED;
+    }
+}
+class HTTPConflictError extends HTTPError
+{
+    function getResponse() : object
+    {
+        return (object)HTTP_CONFLICT_ERROR;
+    }
+}

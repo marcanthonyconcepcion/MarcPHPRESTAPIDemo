@@ -108,7 +108,7 @@ class SubscriberControllerTest extends TestCase
 
     function testHTTPMethodNotAllowedError()
     {
-        $this->expectException(HTTPMethodNotAllowedError::class);
+        $this->expectException(HTTPNotAllowedError::class);
         $this->dut->processHTTP((object)['http_command'=>'TRACE']);
         $this->dut->processHTTP((object)['http_command'=>'POST', 'json_parameters'=>json_encode(new StdClass())], 200);
         $this->dut->processHTTP((object)['http_command'=>'DELETE']);
