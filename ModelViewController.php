@@ -69,7 +69,7 @@ class View
     static function sendResponse(StdClass $response)
     {
         header($response->status->message, true, $response->status->code);
-        if(is_null($response->body)===false)
+        if(key_exists('body', (array)$response))
         {
             echo $response->body;
         }
