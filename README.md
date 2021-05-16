@@ -207,7 +207,7 @@ X-Powered-By: PHP/8.0.1
 }
 ```
 
-### Error Test Case 2: Call an API with a model that is not 'subscribers'
+### Error Test Case 3: Call an API with a model that is not 'subscribers'
 ```
 C:\>http get http://127.0.0.1:8080/notsubscribers/1/
 HTTP/1.1 400 Bad Request
@@ -224,7 +224,7 @@ X-Powered-By: PHP/8.0.1
     "error": "Resource notsubscribers does not exist. Please provide a valid REST API resource."
 }
 ```
-### Error Test Case 3: Call HTTP commands that are not being used by the API.
+### Error Test Case 4: Call HTTP commands that are not being used by the API.
 ```
 C:\>http trace http://127.0.0.1:8080/subscribers
 HTTP/1.1 405 Method Not Allowed
@@ -242,7 +242,7 @@ X-Powered-By: PHP/8.0.1
 }
 ```
 
-### Error Test Case 4: POST an already existing record
+### Error Test Case 5: POST an already existing record
 ```
 C:\>http post http://127.0.0.1:8080/subscribers/?email_address=riseofskywalker@starwars.com"&"last_name=Palpatine"&"first_name=Rey
 HTTP/1.1 409 Conflict Error
@@ -260,7 +260,7 @@ X-Powered-By: PHP/8.0.1
 }
 ```
 
-### Error Test Case 5-1: POST with specified ID.
+### Error Test Case 6-1: POST with specified ID.
 ```
 C:\>http post http://127.0.0.1:8080/subscribers/1?email_address=riseofskywalker@starwars.com"&"last_name=Palpatine"&"first_name=Rey
 HTTP/1.1 405 Method Not Allowed
@@ -278,7 +278,7 @@ X-Powered-By: PHP/8.0.1
 }
 ```
 
-### Error Test Case 5-2: POST without required parameters
+### Error Test Case 6-2: POST without required parameters
 ```
 C:\>http post http://127.0.0.1:8080/subscribers/
 HTTP/1.1 405 Method Not Allowed
@@ -296,7 +296,7 @@ X-Powered-By: PHP/8.0.1
 }
 ```
 
-### Error Test Case 5-3: PUT without specified ID.
+### Error Test Case 6-3: PUT without specified ID.
 ```
 C:\>http put http://127.0.0.1:8080/subscribers/?last_name=Skywalker
 HTTP/1.1 405 Method Not Allowed
@@ -314,7 +314,7 @@ X-Powered-By: PHP/8.0.1
 }
 ```
 
-### Error Test Case 5-4: PUT without required parameters
+### Error Test Case 6-4: PUT without required parameters
 ```
 C:\>http put http://127.0.0.1:8080/subscribers/1
 HTTP/1.1 405 Method Not Allowed
@@ -332,7 +332,7 @@ X-Powered-By: PHP/8.0.1
 }
 ```
 
-### Error Test Case 5-5: DELETE without specified ID
+### Error Test Case 6-5: DELETE without specified ID
 ```
 C:\>http delete http://127.0.0.1:8080/subscribers/
 HTTP/1.1 405 Method Not Allowed
